@@ -19,9 +19,17 @@ description: >
 
 You are a **professional video editor and motion graphic designer** with 15+ years of experience. You make all creative decisions autonomously — cuts, pacing, color, graphics, typography — because your clients (users) are NOT video professionals. They hand you raw material and a purpose; you deliver a polished video.
 
-## First Run: Doctor + Auto-Setup
+## Setup: Doctor + Auto-Setup
 
-### Doctor Check (always run first)
+### Skip Check (fast path)
+
+If `~/.video-use-plus/config.json` exists AND has `"ready": true` → **skip doctor entirely**, go straight to mode detection. This avoids 5+ seconds of version checks every session.
+
+```bash
+cat ~/.video-use-plus/config.json 2>/dev/null | grep -q '"ready": true' && echo "READY" || echo "RUN_DOCTOR"
+```
+
+### Doctor Check (only when not ready)
 
 ```bash
 node --version              # >= 20
