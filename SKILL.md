@@ -33,6 +33,12 @@ yt-dlp --version
 cat ~/.video-use-plus/config.json 2>/dev/null
 ```
 
+**Repo detection**: Read paths from `~/.video-use-plus/config.json` first. If config exists, use `html_video_root` and `video_use_root` from config. If config doesn't exist, check default paths:
+- html-video: `~/Developer/html-video` OR `~/ghq/github.com/nexu-io/html-video`
+- video-use: `~/Developer/video-use`
+
+If found at non-default path → auto-create config.json with detected paths.
+
 Report status table. If anything missing, show what needs installing + estimated time, then ask: "ติดตั้ง dependencies ได้เลยไหมครับ?"
 
 ### Install (macOS only — v1)
