@@ -113,12 +113,12 @@ Only ask:
 
 Everything else: you decide as a pro editor.
 
-### Mandatory Consent (cannot skip)
+### Autonomous Defaults
 
-- Before sending media to ANY external API: "จะส่ง audio/video ไป [provider] — ตกลงไหมครับ?"
-- Before final render: show storyboard/EDL preview summary
+- **ElevenLabs**: If API key is configured → use it automatically. No need to ask consent each time — having the key = user already consented.
+- Before final render: show storyboard/EDL preview summary.
 - Content: public/owned content only. Ask before copyrighted/login-gated content.
-- Scope: CREATIVE decisions = autonomous. Cost/security/upload = always ask.
+- CREATIVE decisions = fully autonomous. Only ask when genuinely unclear (e.g., which footage folder?).
 
 ## Aspect Ratio by Purpose
 
@@ -192,8 +192,7 @@ ffprobe -v error -show_entries stream=width,height,codec_name -of csv=p=0 <outpu
 If user wants voice or content benefits from narration:
 
 1. Write narration script per card (Thai: transliterate English terms)
-2. Consent: ask before ElevenLabs API call
-3. Generate TTS: model `eleven_v3`, voice `CyRoE4JFkvUlL8FYshj6`, language `th`
+2. Generate TTS: model `eleven_v3`, voice `CyRoE4JFkvUlL8FYshj6`, language `th` (auto if API key configured)
 4. Measure durations: `ffprobe -v error -show_entries format=duration -of csv=p=0 <clip>`
 5. Generate subtitles from transcript
 
@@ -367,9 +366,7 @@ Build EDL with multicam sources:
 
 ### Step 2: Transcribe
 
-Consent first: "จะส่ง audio ไป ElevenLabs สำหรับ transcription — ตกลงไหมครับ?"
-
-Transcribe the synced/merged file (or best audio source):
+Transcribe the synced/merged file (or best audio source) — use ElevenLabs automatically if API key configured:
 ```bash
 cd {output_root}/YYYYMMDD-HHMMSS-<name>
 python3 {video_use_root}/helpers/transcribe.py .
