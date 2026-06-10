@@ -367,10 +367,13 @@ Build EDL with multicam sources:
 ### Step 2: Transcribe
 
 Transcribe the synced/merged file (or best audio source) — use ElevenLabs automatically if API key configured:
+
+**IMPORTANT**: `transcribe.py` expects a VIDEO FILE path, NOT a directory. Always pass the actual .mp4/.mov file.
+
 ```bash
 cd {output_root}/YYYYMMDD-HHMMSS-<name>
-python3 {video_use_root}/helpers/transcribe.py .
-python3 {video_use_root}/helpers/pack_transcripts.py .
+python3 {video_use_root}/helpers/transcribe.py <video_file.mp4>
+python3 {video_use_root}/helpers/pack_transcripts.py --edit-dir edit
 ```
 
 ### Step 3: Analyze + Auto-Edit
