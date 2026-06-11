@@ -1,15 +1,15 @@
 ---
 name: video-use-plus
 description: >
-  Professional AI video editor + motion graphic designer that combines html-video
-  (template rendering + custom HTML/GSAP animation) with video-use (AI footage editing).
+  Professional AI video editor + motion graphic designer that combines HyperFrames
+  (custom HTML/GSAP animation + transparent overlays) with video-use (AI footage editing).
   Three modes: content-to-video from URL/topic/YouTube (Mode A), raw footage editing with
   auto-cut/grade/subtitle (Mode B), and hybrid footage + motion graphic overlays (Mode C).
   Makes all creative decisions autonomously like a pro editor — users provide content and purpose only.
   Use when: "make video", "ตัดต่อวิดีโอ", "edit footage", "สร้างวิดีโอ", "video-use-plus",
   "ทำวิดีโอจาก URL", "ตัดคลิป", "ใส่ motion graphic", "สร้างวิดีโอจากเนื้อหา",
   "polish my video", "add title card", "ใส่ subtitle", "edit my recording".
-  Do NOT use for: single template card (use html-video), voice-first video (use hyperframes-video),
+  Do NOT use for: voice-first video (use hyperframes-video),
   video download only (use video-downloader), AI image/video prompts (use prompt-ai-image-video).
 ---
 
@@ -35,17 +35,13 @@ cat ~/.video-use-plus/config.json 2>/dev/null | grep -q '"ready": true' && echo 
 node --version              # >= 22 (required for HyperFrames)
 python3 --version           # >= 3.10
 ffmpeg -version
-pnpm --version
 uv --version
 yt-dlp --version
+npx --yes hyperframes --version
 cat ~/.video-use-plus/config.json 2>/dev/null
 ```
 
-**Repo detection**: Read paths from `~/.video-use-plus/config.json` first. If config exists, use `html_video_root` and `video_use_root` from config. If config doesn't exist, check default paths:
-- html-video: `~/Developer/html-video` OR `~/ghq/github.com/nexu-io/html-video`
-- video-use: `~/Developer/video-use`
-
-If found at non-default path → auto-create config.json with detected paths.
+**Repo detection**: Read `video_use_root` from `~/.video-use-plus/config.json`. If config doesn't exist, check default: `~/Developer/video-use`.
 
 Report status table. If anything missing, show what needs installing + estimated time, then ask: "ติดตั้ง dependencies ได้เลยไหมครับ?"
 
@@ -55,20 +51,12 @@ Only after user consent:
 
 ```bash
 brew install ffmpeg yt-dlp
-npm install -g pnpm
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-HTML_VIDEO_SHA="90a036a2f1ca1f91ccbffcf833f2e4ca8699f27b"
 VIDEO_USE_SHA="cf12ac35143caa48db76efa35b1cb439582333bb"
-
-git clone https://github.com/nexu-io/html-video.git ~/Developer/html-video
-cd ~/Developer/html-video && git checkout $HTML_VIDEO_SHA && pnpm install && pnpm -r build
-npx playwright install chromium
 
 git clone https://github.com/browser-use/video-use.git ~/Developer/video-use
 cd ~/Developer/video-use && git checkout $VIDEO_USE_SHA && uv sync
-
-node ~/Developer/html-video/packages/cli/dist/bin.js doctor
 
 # HyperFrames — auto-installed via npx on first use, verify:
 npx --yes hyperframes --version
@@ -79,7 +67,6 @@ Create config:
 mkdir -p ~/.video-use-plus
 cat > ~/.video-use-plus/config.json << 'CONF'
 {
-  "html_video_root": "$HOME/Developer/html-video",
   "video_use_root": "$HOME/Developer/video-use",
   "output_root": "$HOME/Movies/video-use-plus"
 }
@@ -91,9 +78,8 @@ Expand `$HOME` to actual home path when writing config.
 ### Config Paths
 
 All commands use paths from `~/.video-use-plus/config.json`:
-- **html-video CLI**: `node {html_video_root}/packages/cli/dist/bin.js <command>`
 - **video-use helpers**: `python3 {video_use_root}/helpers/<script>.py`
-- **Templates**: `{html_video_root}/templates/<name>/source/index.html`
+- **HyperFrames**: `npx --yes hyperframes <command>` (auto-installed)
 - **Output**: `{output_root}/YYYYMMDD-HHMMSS-<name>/`
 
 ## Mode Detection
@@ -103,7 +89,7 @@ Auto-detect from user input:
 | Input | Mode | Primary Tool |
 |-------|------|-------------|
 | Video files (.mp4/.mov/.mkv path or dir) | **B** — Footage Edit | video-use |
-| URL / topic / YouTube / GitHub | **A** — Content → Video | html-video |
+| URL / topic / YouTube / GitHub | **A** — Content → Video | HyperFrames |
 | Video files + topic/context | **C** — Hybrid | both |
 
 If unclear, ask ONE question: "มี footage ให้ตัดต่อ หรืออยากสร้างวิดีโอจากเนื้อหาครับ?"
@@ -173,13 +159,13 @@ Input → Extract Content → Storyboard → Render Cards → (Voice) → Stitch
 
 Map content to 3-6 cards. Choose card roles based on content:
 
-| Card Role | When | Template Reference |
+| Card Role | When | Animation Pattern |
 |-----------|------|-------------------|
-| Title/Hook | Always first | frame-bold-signal, frame-glitch-title |
-| Key Stat | Content has numbers | frame-pentagram-stat, frame-data-chart-nyt |
-| Explanation | Core message | frame-takram-organic, frame-build-minimal |
-| Code/Tech | Technical content | vfx-text-cursor |
-| Outro/CTA | Always last | frame-logo-outro, frame-light-leak-cinema |
+| Title/Hook | Always first | Scale-up + glow, glitch chromatic aberration |
+| Key Stat | Content has numbers | Counter rise (GSAP snap), bar growth (scaleX) |
+| Explanation | Core message | Fade-up staggered, organic float, SVG path draw |
+| Code/Tech | Technical content | Cursor blink, monospace typewriter, neon rays |
+| Outro/CTA | Always last | Film grain overlay, vignette fade, cinematic mood |
 
 Content archetypes:
 - **Blog article** → Hook + 2-3 insight cards + summary
@@ -187,26 +173,24 @@ Content archetypes:
 - **Topic** → Question/hook + 2-3 teaching cards + recap
 - **GitHub** → Repo name + problem/solution + features + install CTA
 
-### Step 3: Render Cards
+### Step 3: Render Cards (HyperFrames)
 
-For each card:
+For each card, create a HyperFrames slot and write custom HTML/GSAP:
 
 ```bash
-# 1. Read template reference for animation patterns
-cat {html_video_root}/templates/<template>/source/index.html
+# 1. Init slot
+mkdir -p {output_root}/YYYYMMDD-HHMMSS-<name>/cards/card_N
+cd {output_root}/YYYYMMDD-HHMMSS-<name>/cards/card_N
+npx --yes hyperframes init . --example blank --non-interactive --skip-skills
 
-# 2. Create project
-node {html_video_root}/packages/cli/dist/bin.js project-create --name "card-N"
+# 2. Write custom HTML composition in index.html
+#    (use Animation Patterns Cheat Sheet below for GSAP/CSS techniques)
 
-# 3. Set template + variables
-node {html_video_root}/packages/cli/dist/bin.js project-set-template <proj_id> --template <template>
-node {html_video_root}/packages/cli/dist/bin.js project-set-var <proj_id> --key title --value "..."
+# 3. Render to MP4
+npx --yes hyperframes render . -o card_N.mp4
 
-# 4. Render
-node {html_video_root}/packages/cli/dist/bin.js project-render <proj_id> --output <output_dir>/card_N.mp4
-
-# 5. Verify
-ffprobe -v error -show_entries stream=width,height,codec_name -of csv=p=0 <output_dir>/card_N.mp4
+# 4. Verify
+ffprobe -v error -show_entries stream=width,height,codec_name -of csv=p=0 card_N.mp4
 ```
 
 ### Step 4: Voiceover (Optional)
@@ -501,57 +485,35 @@ Analyze edited footage content. Choose styles:
 
 Two methods for transparent overlays (see "Animation Engine Selection" for decision table):
 
-**Method A — HyperFrames (preferred for overlays)**: Native WebM alpha, simpler pipeline:
+All graphics rendered via HyperFrames:
+
 ```bash
-cd edit/animations/slot_1/
+cd edit/animations/slot_N/
 npx --yes hyperframes init . --example blank --non-interactive --skip-skills
-# Write HTML composition in index.html
-npx --yes hyperframes render . --format webm -o render.webm
-# Composite WebM overlay onto footage:
-ffmpeg -y -i footage.mp4 -i render.webm \
+# Write custom HTML/GSAP composition in index.html (use Cheat Sheet patterns)
+
+# Full-frame cards (opaque background) → MP4
+npx --yes hyperframes render . -o render.mp4
+
+# Transparent overlays (lower-third, stat counter) → MOV with alpha
+npx --yes hyperframes render . --format mov -o render.mov
+
+# Composite MOV alpha overlay onto footage:
+ffmpeg -y -i footage.mp4 -i render.mov \
   -filter_complex "[1:v]setpts=PTS-STARTPTS+START_TIME/TB[ovr];[0:v][ovr]overlay=0:0:enable='between(t,START,END)'" \
   -c:v libx264 -pix_fmt yuv420p -preset fast -crf 18 composited.mp4
 ```
 
-**Method B — html-video PNG sequence**: When using html-video templates for overlays:
+**CRITICAL**: Use `--format mov` for alpha. WebM does NOT render with alpha despite docs.
 
-```bash
-# 1. Write overlay HTML with background: transparent
-# 2. Render to PNG sequence via Playwright (omitBackground: true)
-node -e "
-import { chromium } from '{html_video_root}/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright/index.mjs';
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto('file:///path/to/overlay.html');
-await page.waitForTimeout(500);
-const fps = 30; const duration = 5;
-for (let i = 0; i < fps * duration; i++) {
-  await page.screenshot({ path: \`frames/frame_\${String(i).padStart(4,'0')}.png\`, omitBackground: true });
-  await page.waitForTimeout(1000 / fps);
-}
-await browser.close();
-" 2>/dev/null
-
-# 3. Composite PNG sequence onto footage via ffmpeg overlay
-ffmpeg -y -i edited_footage.mp4 \
-  -framerate 30 -i frames/frame_%04d.png \
-  -filter_complex "[1:v]setpts=PTS-STARTPTS+START_TIME/TB[ovr];[0:v][ovr]overlay=0:0:enable='between(t,START,END)'" \
-  -c:v libx264 -pix_fmt yuv420p -preset fast -crf 18 \
-  composited.mp4
-```
-
-**Why PNG not MP4**: MP4 (h264) does NOT support alpha channel. PNG sequence preserves transparency → ffmpeg overlay shows footage through transparent areas. Verified via spike test.
-
-For **full-frame cards** (title, outro — no transparency needed): render as MP4 via html-video CLI (faster, simpler). Use PNG sequence ONLY for overlays that need transparency (lower-thirds, bullet points, stat counters on footage).
-
-| Graphic Type | Render Format | Method |
+| Graphic Type | Format | HyperFrames Flag |
 |---|---|---|
-| Lower-third (transparent bg) | WebM alpha (HyperFrames) or PNG sequence (html-video) | See decision table |
-| Bullet points over footage | WebM alpha (HyperFrames) or PNG sequence (html-video) | Same |
-| Full-frame title card | MP4 | html-video CLI project-render |
-| Full-frame outro | MP4 | html-video CLI project-render |
-| Stat counter over footage | WebM alpha (HyperFrames) or PNG sequence (html-video) | Same |
-| Lottie / Three.js animation | WebM alpha | HyperFrames only |
+| Lower-third (transparent bg) | MOV (ProRes YUVA) | `--format mov` |
+| Bullet points over footage | MOV (ProRes YUVA) | `--format mov` |
+| Stat counter over footage | MOV (ProRes YUVA) | `--format mov` |
+| Lottie / Three.js overlay | MOV (ProRes YUVA) | `--format mov` |
+| Full-frame title card | MP4 | (default) |
+| Full-frame outro | MP4 | (default) |
 
 ### Step 7: Preview + Composite
 
@@ -559,10 +521,10 @@ Show storyboard/EDL summary:
 ```
 Base: edited footage (62s)
 Graphics:
-  0-4s: Title card (bold-signal) — FULL FRAME MP4
-  8-13s: Lower-third "John Smith, CEO" — PNG ALPHA OVERLAY
-  15-20s: Stat counter (+340% growth) — PNG ALPHA OVERLAY
-  55-58s: Outro (logo-outro) — FULL FRAME MP4
+  0-4s: Title card — FULL FRAME MP4 (HyperFrames)
+  8-13s: Lower-third "John Smith, CEO" — MOV ALPHA OVERLAY (HyperFrames)
+  15-20s: Stat counter (+340% growth) — MOV ALPHA OVERLAY (HyperFrames)
+  55-58s: Outro — FULL FRAME MP4 (HyperFrames)
 Subtitles: auto from transcript
 Audio: normalized -14 LUFS
 ```
@@ -570,17 +532,16 @@ Audio: normalized -14 LUFS
 Ask: "Render ได้เลยไหมครับ?"
 
 Assembly order:
-1. Render full-frame cards (MP4) via html-video CLI
-2. Render transparent overlays (PNG) via Playwright
+1. Render full-frame cards (MP4) via HyperFrames
+2. Render transparent overlays (MOV with alpha) via HyperFrames
 3. Build ffmpeg filter_complex chain: footage → overlay1 → overlay2 → ... → subtitles (last)
-4. Or for simple cases: render.py with full-frame cards in EDL overlays[] + manual ffmpeg for transparent overlays
 
 ```bash
-# Complex composite with transparent overlays
+# Complex composite with MOV alpha overlays
 ffmpeg -y -i footage.mp4 \
   -i title_card.mp4 \
-  -framerate 30 -i lowerthird_frames/frame_%04d.png \
-  -framerate 30 -i stat_frames/frame_%04d.png \
+  -i lowerthird.mov \
+  -i stat_counter.mov \
   -i outro_card.mp4 \
   -filter_complex "
     [1:v]setpts=PTS-STARTPTS[title];
@@ -674,67 +635,54 @@ if conf < 0.1:
 
 **Confidence threshold**: if < 0.1 → fall back to manual clap sync.
 
-## Template Reference Library
+## Animation Patterns Cheat Sheet
 
-Before writing custom HTML/GSAP, read source HTML from these templates to learn animation patterns:
+Reference patterns for writing custom HTML/GSAP compositions in HyperFrames. ALWAYS create fresh compositions tailored to the specific content.
 
-| Priority | Template | Read For |
-|---|---|---|
-| ⭐1 | frame-takram-organic | SVG path drawing, sequenced delays, organic float |
-| ⭐2 | frame-pentagram-stat | Number/counter rise, bar growth, grid sweep |
-| ⭐3 | frame-light-leak-cinema | Film grain, vignette, cinematic mood |
-| ⭐4 | vfx-text-cursor | Cursor blink, chromatic aberration, tech glow |
-| ⭐5 | frame-data-chart-nyt | SVG line draw, editorial data visualization |
-| 6 | frame-bold-signal | Card slide-in, section dividers |
-| 7 | frame-electric-studio | Electric energy, bold tech pitch |
-| 8 | frame-creative-voltage | Vibrant promo openers |
+### GSAP Patterns
 
-Read: `cat {html_video_root}/templates/<name>/source/index.html`
+| Pattern | Code | Use For |
+|---------|------|---------|
+| Fade up | `tl.fromTo(el, {opacity:0, y:20}, {opacity:1, y:0, duration:0.8, ease:"power2.out"})` | Text reveals, cards |
+| Scale bounce | `tl.fromTo(el, {scale:0.9, opacity:0}, {scale:1, opacity:1, ease:"back.out(1.7)"})` | Title emphasis |
+| Slide in | `tl.fromTo(el, {x:-100, opacity:0}, {x:0, opacity:1, ease:"power3.out"})` | Bars, cards |
+| Stagger | `tl.to(".items", {opacity:1, y:0, stagger:{each:0.05, from:"random"}})` | Particles, lists |
+| Counter rise | `tl.to(el, {textContent:targetNum, duration:1.5, snap:{textContent:1}})` | Stats, numbers |
+| Bar growth | `tl.to(el, {scaleX:1, duration:0.8, ease:"power2.out"})` | Progress bars, accents |
 
-Use techniques from references but ALWAYS create fresh compositions for the specific content. Never copy templates verbatim.
+### CSS Patterns
 
-## Animation Engine Selection
+| Pattern | Code | Use For |
+|---------|------|---------|
+| SVG path draw | `stroke-dasharray:1000; @keyframes draw { to { stroke-dashoffset:0 } }` | Line charts, diagrams |
+| Film grain | `position:absolute; inset:0; opacity:0.14; mix-blend-mode:overlay` + noise bg | Cinematic mood |
+| Vignette | `background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.6) 100%)` | Focus, cinema |
+| Cursor blink | `@keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }` | Terminal, code |
+| Neon glow rays | `filter:blur(8px); background:linear-gradient(90deg, transparent, rgba(color,0.6), transparent)` | Tech aesthetic |
+| Float | `@keyframes floatY { 0%,100%{translateY(-50%)} 50%{translateY(-54%)} }` | Ambient elements |
+| Organic ease | `cubic-bezier(0.16,1,0.3,1)` | Smooth, premium feel |
 
-Two rendering engines are available. Pick per animation slot — one video may use both.
-
-| Engine | Best For | Install | Alpha/Transparency |
-|--------|----------|---------|-------------------|
-| **html-video** | Template-based: 21 templates, quick turnaround | Clone repo (auto-setup) | PNG sequence via Playwright |
-| **HyperFrames** | Custom compositions: deterministic render, Lottie/Three.js, native alpha | `npx --yes hyperframes` (auto on first use) | Native WebM alpha |
-
-### Engine Decision Table
-
-| Condition | Engine | Why |
-|-----------|--------|-----|
-| Template match exists (stat, title, chart, glitch, editorial) | html-video | Faster — fill template, render |
-| Full-frame card (title, outro, transition) | html-video | CLI render is quick |
-| Transparent overlay (lower-third, bullet, counter on footage) | HyperFrames | Native WebM alpha, no PNG workaround |
-| Lottie / Three.js / Anime.js animation | HyperFrames | html-video doesn't support these |
-| Product UI motion / website-to-video / mockup capture | HyperFrames | Built for this use case |
-| Complex custom animation that doesn't match any template | HyperFrames | lint + validate + deterministic |
-| Both would work equally | html-video | Template reference = faster |
-
-**Rule**: User decides WHAT (subtitle? motion graphic?). Claude decides HOW (which engine).
-
-### HyperFrames Usage
+### HyperFrames Commands
 
 ```bash
-# Init a slot (inside project edit dir)
-cd {output_root}/YYYYMMDD-HHMMSS-<name>/edit/animations/slot_1/
+# Init a slot
+cd {output_root}/YYYYMMDD-HHMMSS-<name>/edit/animations/slot_N/
 npx --yes hyperframes init . --example blank --non-interactive --skip-skills
 
-# Build HTML composition in index.html, then:
+# Write custom HTML composition in index.html, then:
 npx --yes hyperframes lint .
 npx --yes hyperframes validate .
 
-# Render to MP4 (full-frame cards)
+# Full-frame cards (title, outro) → MP4
 npx --yes hyperframes render . -o render.mp4
 
-# Render to WebM with alpha (transparent overlays)
-npx --yes hyperframes render . --format webm -o render.webm
+# Transparent overlays (lower-third, stat counter) → MOV with alpha
+npx --yes hyperframes render . --format mov -o render.mov
 ```
 
-**Requirement**: Node.js 22+ for HyperFrames.
+**CRITICAL**: For transparent overlays use `--format mov` (ProRes YUVA). Do NOT use `--format webm` — WebM renders without alpha channel despite docs saying otherwise.
+
+**Requirement**: Node.js 22+. HyperFrames auto-installs via npx on first use.
 
 ## Options
 
@@ -762,8 +710,8 @@ After render: `open final.mp4` to play.
 
 ## Cleanup
 
-After confirming output is good:
+After confirming output is good, delete temporary animation slot directories:
 ```bash
-# Delete html-video projects created during this session
-node {html_video_root}/packages/cli/dist/bin.js project-delete <proj_id>
+rm -rf {output_root}/YYYYMMDD-HHMMSS-<name>/edit/animations/
+rm -rf {output_root}/YYYYMMDD-HHMMSS-<name>/cards/
 ```
