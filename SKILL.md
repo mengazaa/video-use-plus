@@ -111,6 +111,7 @@ After probing the video (Step 0), present a capability menu so user knows what's
 ✅ Auto-cut (ตัด silence, filler, ซ้ำ)
 ✅ Color grading (ปรับสีให้สวย)
 ✅ Audio normalization (-14 LUFS)
+✅ Best take selection (ถ้ามีหลาย takes — จัดกลุ่ม scene + เลือก take ที่ดีที่สุด)
 ⬜ Subtitles — ภาษาอะไรครับ? (th/en/auto)
 ⬜ Motion graphics (lower-third, title card, stat overlay)
 ⬜ Voiceover (TTS narration)
@@ -263,15 +264,77 @@ Auto-detect scenario:
 |----------|-----------|-----------|
 | **Single file** | 1 video file | Skip to Step 2 |
 | **Multi-clip** | Multiple video files, different content | Treat as sequence, skip to Step 2 |
-| **Multicam** | Multiple video files, similar duration (±5%) | Step 1: Sync cameras |
-| **External audio** | .wav/.mp3/.aac files alongside video | Step 1: Merge audio |
-| **Multicam + ext audio** | Both detected | Step 1: Sync all |
+| **Multi-take** | Multiple video files, similar content (transcript overlap > 50%) | Step 1B: Scene grouping + take selection |
+| **Multicam** | Multiple video files, similar duration (±5%) | Step 1A: Sync cameras |
+| **External audio** | .wav/.mp3/.aac files alongside video | Step 1C: Merge audio |
+| **Multicam + ext audio** | Both detected | Step 1A + 1C |
+
+**Multi-take vs Multicam**: Multi-take = ถ่ายซ้ำหลายรอบ (เนื้อหาซ้ำกัน ความยาวต่างกัน). Multicam = ถ่ายพร้อมกันหลายกล้อง (ความยาวใกล้กัน ±5%).
 
 **After probe**: Show Capability Menu (see "User Input" section above), then proceed based on user selections.
 
-### Step 1: Sync + Merge (when multicam or external audio detected)
+### Step 1: Sync, Merge, or Select
 
-#### 1A: External Audio Merge
+#### 1A: Multi-Take Scene Grouping + Best Take Selection
+
+When multiple takes of the same content are detected (e.g., 17 takes of 4 scenes):
+
+**Step 1**: Transcribe all takes
+```bash
+for f in *.mp4; do
+  python3 {video_use_root}/helpers/transcribe.py "$f"
+done
+python3 {video_use_root}/helpers/pack_transcripts.py --edit-dir edit
+```
+
+**Step 2**: Group takes into scenes by transcript similarity
+- Compare transcript text between all takes using word overlap
+- Takes with > 50% word overlap = same scene
+- Output: `edit/scenes.json`
+
+```json
+{
+  "scenes": [
+    {
+      "scene_id": 1,
+      "description": "Opening — greeting and intro",
+      "takes": [
+        {"file": "take_01.mp4", "filler_count": 5, "duration": 45.2, "quality_score": 0.72},
+        {"file": "take_04.mp4", "filler_count": 2, "duration": 42.8, "quality_score": 0.91},
+        {"file": "take_07.mp4", "filler_count": 3, "duration": 44.1, "quality_score": 0.85}
+      ],
+      "selected": "take_04.mp4",
+      "reason": "Lowest filler count (2), clean delivery"
+    }
+  ]
+}
+```
+
+**Step 3**: Rank takes per scene using quality score:
+- **Filler count** (weight 40%): count of "um", "uh", "อ้า", "เอ่อ", repeated phrases
+- **Delivery flow** (weight 30%): fewer long pauses (> 2s) = better
+- **Duration** (weight 15%): closer to median duration of scene = better (outliers = likely flubbed)
+- **Position** (weight 15%): later takes often better (warmed up) — slight bonus for higher take numbers
+
+**Step 4**: Show selection summary for user approval:
+```
+📋 Scene Grouping (17 takes → 4 scenes):
+
+Scene 1: Opening (3 takes)
+  ✅ take_04.mp4 — score 0.91 (2 fillers, smooth flow)
+     take_07.mp4 — score 0.85 (3 fillers)
+     take_01.mp4 — score 0.72 (5 fillers)
+
+Scene 2: Demo (5 takes)
+  ✅ take_12.mp4 — score 0.88 (1 filler, clean)
+  ...
+
+ใช้ selection นี้ได้เลยไหมครับ? หรืออยากเปลี่ยน take ไหน?
+```
+
+**Step 5**: Stitch selected takes into first cut, then continue to Step 3 (Analyze + Auto-Edit) for filler trimming within the selected takes.
+
+#### 1B: External Audio Merge
 
 Replace camera audio with external mic recording:
 
@@ -320,7 +383,7 @@ ffmpeg -i cam_a.mp4 -i mic_boom.wav -i mic_lav.wav \
 ffmpeg -i cam_a.mp4 -i mic_boom.wav -map 0:v -map 1:a -c:v copy -c:a aac synced.mp4
 ```
 
-#### 1B: Multicam Sync
+#### 1C: Multicam Sync
 
 Align multiple cameras to a common timeline:
 
@@ -343,7 +406,7 @@ Timeline (common time):
   0:02-12:31  cam_b.mp4 (offset: +2.1s — started 2.1s later)
 ```
 
-#### 1C: Multicam Angle Selection
+#### 1D: Multicam Angle Selection
 
 As a pro editor, auto-select the best angle per segment:
 
