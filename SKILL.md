@@ -105,20 +105,39 @@ Auto-detect from user input:
 
 If unclear, ask ONE question: "มี footage ให้ตัดต่อ หรืออยากสร้างวิดีโอจากเนื้อหาครับ?"
 
-## User Input — Ask Minimum
+## User Input — Progressive Disclosure
 
-Only ask:
+### For all modes: ask these first
 1. **What**: content/footage path or topic
 2. **Purpose** (if not obvious): fb-feed, fb-reel, youtube, ig-post, tiktok — default: fb-feed
 
-Everything else: you decide as a pro editor.
+### For Mode B/C (footage input): show Capability Menu after Step 0
+
+After probing the video (Step 0), present a capability menu so user knows what's available. Show as a checklist with defaults pre-selected:
+
+```
+📋 วิดีโอของคุณ: [filename] ([duration]s, [resolution])
+
+ผมทำอะไรให้ได้บ้าง:
+✅ Auto-cut (ตัด silence, filler, ซ้ำ)
+✅ Color grading (ปรับสีให้สวย)
+✅ Audio normalization (-14 LUFS)
+⬜ Subtitles — ภาษาอะไรครับ? (th/en/auto)
+⬜ Motion graphics (lower-third, title card, stat overlay)
+⬜ Voiceover (TTS narration)
+
+บอกได้เลยว่าอยากได้อะไรบ้าง หรือจะบอก "ทำเลย" ผมจะใช้ ✅ defaults ครับ
+```
+
+**Skip menu when**: user already specified flags (`--no-subtitle`, `--no-graphics`, etc.) or explicitly said what they want (e.g., "ตัดต่อแล้วใส่ sub ภาษาไทย").
 
 ### Autonomous Defaults
 
-- **ElevenLabs**: If API key is configured → use it automatically. No need to ask consent each time — having the key = user already consented.
+- **Capability menu**: Show after probe (Step 0) for Mode B/C. Skip if user already specified flags or explicit instructions.
+- **ElevenLabs**: If API key is configured → use it automatically when user selects voiceover.
 - Before final render: show storyboard/EDL preview summary.
 - Content: public/owned content only. Ask before copyrighted/login-gated content.
-- CREATIVE decisions = fully autonomous. Only ask when genuinely unclear (e.g., which footage folder?).
+- CREATIVE decisions (cut timing, color palette, template choice) = fully autonomous. Capability scope = ask user.
 
 ## Aspect Ratio by Purpose
 
@@ -261,6 +280,8 @@ Auto-detect scenario:
 | **External audio** | .wav/.mp3/.aac files alongside video | Step 1: Merge audio |
 | **Multicam + ext audio** | Both detected | Step 1: Sync all |
 
+**After probe**: Show Capability Menu (see "User Input" section above), then proceed based on user selections.
+
 ### Step 1: Sync + Merge (when multicam or external audio detected)
 
 #### 1A: External Audio Merge
@@ -378,7 +399,21 @@ python3 {video_use_root}/helpers/pack_transcripts.py --edit-dir edit
 
 ### Step 3: Analyze + Auto-Edit
 
-Read packed transcript. Make editing decisions as a pro editor:
+Read packed transcript and word-level JSON. Files are in the edit directory:
+
+```bash
+# Packed readable transcript (phrase-level markdown)
+cat {output_root}/YYYYMMDD-HHMMSS-<name>/edit/takes_packed.md
+
+# Raw word-level JSON transcript (for precise cut points)
+cat {output_root}/YYYYMMDD-HHMMSS-<name>/edit/transcripts/<video_stem>.json
+```
+
+**IMPORTANT**: Transcript files are in `edit/` subdirectory, NOT the project root.
+- `edit/takes_packed.md` — human-readable phrase-level transcript
+- `edit/transcripts/<video_stem>.json` — raw JSON with word-level timestamps (e.g., `source.mp4` → `edit/transcripts/source.json`)
+
+Make editing decisions as a pro editor:
 
 | Edit | Rule | Configurable |
 |------|------|-------------|
