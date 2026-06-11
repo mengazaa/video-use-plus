@@ -32,7 +32,7 @@ cat ~/.video-use-plus/config.json 2>/dev/null | grep -q '"ready": true' && echo 
 ### Doctor Check (only when not ready)
 
 ```bash
-node --version              # >= 20
+node --version              # >= 22 (required for HyperFrames)
 python3 --version           # >= 3.10
 ffmpeg -version
 pnpm --version
@@ -69,6 +69,9 @@ git clone https://github.com/browser-use/video-use.git ~/Developer/video-use
 cd ~/Developer/video-use && git checkout $VIDEO_USE_SHA && uv sync
 
 node ~/Developer/html-video/packages/cli/dist/bin.js doctor
+
+# HyperFrames — auto-installed via npx on first use, verify:
+npx --yes hyperframes --version
 ```
 
 Create config:
@@ -494,9 +497,23 @@ Analyze edited footage content. Choose styles:
 | Data/stats | Animated counters + chart reveals | frame-pentagram-stat patterns |
 | Mixed | Combine as needed | Read multiple template references |
 
-### Step 6: Render Graphics (PNG Sequence Alpha Pipeline)
+### Step 6: Render Graphics
 
-For each graphic overlay, write custom HTML/GSAP. Render as **PNG sequence with alpha** (NOT MP4 — MP4 has no transparency):
+Two methods for transparent overlays (see "Animation Engine Selection" for decision table):
+
+**Method A — HyperFrames (preferred for overlays)**: Native WebM alpha, simpler pipeline:
+```bash
+cd edit/animations/slot_1/
+npx --yes hyperframes init . --example blank --non-interactive --skip-skills
+# Write HTML composition in index.html
+npx --yes hyperframes render . --format webm -o render.webm
+# Composite WebM overlay onto footage:
+ffmpeg -y -i footage.mp4 -i render.webm \
+  -filter_complex "[1:v]setpts=PTS-STARTPTS+START_TIME/TB[ovr];[0:v][ovr]overlay=0:0:enable='between(t,START,END)'" \
+  -c:v libx264 -pix_fmt yuv420p -preset fast -crf 18 composited.mp4
+```
+
+**Method B — html-video PNG sequence**: When using html-video templates for overlays:
 
 ```bash
 # 1. Write overlay HTML with background: transparent
@@ -529,11 +546,12 @@ For **full-frame cards** (title, outro — no transparency needed): render as MP
 
 | Graphic Type | Render Format | Method |
 |---|---|---|
-| Lower-third (transparent bg) | PNG sequence | Playwright omitBackground → ffmpeg overlay |
-| Bullet points over footage | PNG sequence | Same |
+| Lower-third (transparent bg) | WebM alpha (HyperFrames) or PNG sequence (html-video) | See decision table |
+| Bullet points over footage | WebM alpha (HyperFrames) or PNG sequence (html-video) | Same |
 | Full-frame title card | MP4 | html-video CLI project-render |
 | Full-frame outro | MP4 | html-video CLI project-render |
-| Stat counter over footage | PNG sequence | Same |
+| Stat counter over footage | WebM alpha (HyperFrames) or PNG sequence (html-video) | Same |
+| Lottie / Three.js animation | WebM alpha | HyperFrames only |
 
 ### Step 7: Preview + Composite
 
@@ -674,6 +692,49 @@ Before writing custom HTML/GSAP, read source HTML from these templates to learn 
 Read: `cat {html_video_root}/templates/<name>/source/index.html`
 
 Use techniques from references but ALWAYS create fresh compositions for the specific content. Never copy templates verbatim.
+
+## Animation Engine Selection
+
+Two rendering engines are available. Pick per animation slot — one video may use both.
+
+| Engine | Best For | Install | Alpha/Transparency |
+|--------|----------|---------|-------------------|
+| **html-video** | Template-based: 21 templates, quick turnaround | Clone repo (auto-setup) | PNG sequence via Playwright |
+| **HyperFrames** | Custom compositions: deterministic render, Lottie/Three.js, native alpha | `npx --yes hyperframes` (auto on first use) | Native WebM alpha |
+
+### Engine Decision Table
+
+| Condition | Engine | Why |
+|-----------|--------|-----|
+| Template match exists (stat, title, chart, glitch, editorial) | html-video | Faster — fill template, render |
+| Full-frame card (title, outro, transition) | html-video | CLI render is quick |
+| Transparent overlay (lower-third, bullet, counter on footage) | HyperFrames | Native WebM alpha, no PNG workaround |
+| Lottie / Three.js / Anime.js animation | HyperFrames | html-video doesn't support these |
+| Product UI motion / website-to-video / mockup capture | HyperFrames | Built for this use case |
+| Complex custom animation that doesn't match any template | HyperFrames | lint + validate + deterministic |
+| Both would work equally | html-video | Template reference = faster |
+
+**Rule**: User decides WHAT (subtitle? motion graphic?). Claude decides HOW (which engine).
+
+### HyperFrames Usage
+
+```bash
+# Init a slot (inside project edit dir)
+cd {output_root}/YYYYMMDD-HHMMSS-<name>/edit/animations/slot_1/
+npx --yes hyperframes init . --example blank --non-interactive --skip-skills
+
+# Build HTML composition in index.html, then:
+npx --yes hyperframes lint .
+npx --yes hyperframes validate .
+
+# Render to MP4 (full-frame cards)
+npx --yes hyperframes render . -o render.mp4
+
+# Render to WebM with alpha (transparent overlays)
+npx --yes hyperframes render . --format webm -o render.webm
+```
+
+**Requirement**: Node.js 22+ for HyperFrames.
 
 ## Options
 

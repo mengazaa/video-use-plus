@@ -59,13 +59,15 @@ sync ~/Movies/cam.mp4 with ~/Movies/mic.wav
 - macOS (Windows: planned for v2)
 - Claude Code
 - ครั้งแรก Claude จะลง dependencies ให้อัตโนมัติ:
-  - FFmpeg, Node.js >= 20, Python >= 3.10
-  - html-video (nexu-io) — สร้าง motion graphics
+  - FFmpeg, Node.js >= 22, Python >= 3.10
+  - html-video (nexu-io) — สร้าง motion graphics (template-based)
+  - HyperFrames (HeyGen) — สร้าง motion graphics (custom compositions)
   - video-use (browser-use) — ตัดต่อวิดีโอ
 
 ## Credits
 
 - [html-video](https://github.com/nexu-io/html-video) — Apache-2.0
+- [HyperFrames](https://github.com/heygen-com/hyperframes) — Apache-2.0
 - [video-use](https://github.com/browser-use/video-use) — MIT
 
 ## License
