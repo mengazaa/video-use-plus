@@ -109,7 +109,7 @@ After probing the video (Step 0), present a capability menu so user knows what's
 
 ผมทำอะไรให้ได้บ้าง:
 ✅ Auto-cut (ตัด silence, filler, ซ้ำ)
-✅ Color grading (ปรับสีให้สวย)
+✅ Color grading — เลือก style: Warm / Cool / Cinematic / Neutral / Custom (หรือบอก "เลือกให้" Claude เลือกตาม content)
 ✅ Audio normalization (-14 LUFS)
 ✅ Best take selection (ถ้ามีหลาย takes — จัดกลุ่ม scene + เลือก take ที่ดีที่สุด)
 ⬜ Subtitles — ภาษาอะไรครับ? (th/en/auto)
@@ -485,7 +485,7 @@ Make editing decisions as a pro editor:
     {"source": "main", "start": 18.1, "end": 45.7, "beat": "CONTENT"},
     {"source": "main", "start": 48.2, "end": 62.0, "beat": "CLOSING"}
   ],
-  "grade": "warm",
+  "grade": "cinematic",
   "subtitles": "edit/master.srt"
 }
 ```
@@ -503,12 +503,42 @@ Make editing decisions as a pro editor:
     {"source": "cam_b", "start": 10.6, "end": 22.0, "beat": "CLOSE-UP"},
     {"source": "cam_a", "start": 22.0, "end": 35.0, "beat": "DEMO"}
   ],
-  "grade": "warm",
+  "grade": "cinematic",
   "subtitles": "edit/master.srt"
 }
 ```
 
-Color grading via `python3 {video_use_root}/helpers/grade.py`.
+### Color Grading Presets
+
+Apply the grade the user selected in the Capability Menu (or auto-select based on content):
+
+| Preset | FFmpeg eq/colorbalance | Best For |
+|--------|----------------------|----------|
+| **Warm** | `eq=brightness=0.03:contrast=1.05:saturation=1.1,colorbalance=rs=0.05:gs=-0.02:bs=-0.05` | Vlogs, tutorials, friendly tone |
+| **Cool** | `eq=brightness=0.02:contrast=1.08:saturation=0.95,colorbalance=rs=-0.04:gs=0.0:bs=0.06` | Tech, corporate, clean feel |
+| **Cinematic** | `eq=brightness=-0.02:contrast=1.15:saturation=1.05,curves=m='0/0 0.15/0.05 0.5/0.5 0.85/0.95 1/1',colorbalance=rs=0.03:gs=-0.01:bs=-0.03` | Film look, crushed blacks + warm highlights |
+| **Neutral** | `eq=brightness=0:contrast=1.0:saturation=1.0` | Color-correct only, no stylization |
+| **Custom** | User describes mood → Claude builds FFmpeg filter | "moody purple", "vintage film", etc. |
+
+**Auto-select rule** (when user says "เลือกให้"):
+
+| Content Type | Auto Grade |
+|---|---|
+| Tutorial / screen recording | Neutral |
+| Vlog / talking head | Warm |
+| Interview / podcast | Cinematic |
+| Product demo / tech | Cool |
+| Music / creative | Custom (match mood) |
+
+```bash
+# Apply grade (example: Cinematic)
+ffmpeg -y -i input.mp4 \
+  -vf "eq=brightness=-0.02:contrast=1.15:saturation=1.05,curves=m='0/0 0.15/0.05 0.5/0.5 0.85/0.95 1/1',colorbalance=rs=0.03:gs=-0.01:bs=-0.03" \
+  -c:v libx264 -preset fast -crf 18 -c:a copy \
+  graded.mp4
+```
+
+Also available: `python3 {video_use_root}/helpers/grade.py` for additional grading options.
 
 Audio normalization:
 ```bash
